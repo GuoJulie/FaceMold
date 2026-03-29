@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceMold - 3D人脸可视化交互组件</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div class="left-panel">
+                <h2>人脸检测</h2>
+                <div class="video-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="detectionCanvas" class="detection-canvas"></canvas>
+                </div>
+                <div class="button-group">
+                    <button id="startCameraBtn" class="btn btn-primary">开启摄像头</button>
+                    <button id="captureBtn" class="btn btn-secondary" disabled>捕捉人脸</button>
+                </div>
+            </div>
+            
+            <div class="center-panel">
+                <h2>3D人脸模型</h2>
+                <div id="rendererContainer" class="renderer-container"></div>
+                <div class="info-panel">
+                    <p>拖拽旋转 | 滚轮缩放</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <h2>参数调整</h2>
+            <div class="control-section">
+                <h3>脸型</h3>
+                <div class="slider-group">
+                    <label>脸宽</label>
+                    <input type="range" id="faceWidth" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="faceWidthValue">1.0</span>
+                </div>
+                <div class="slider-group">
+                    <label>脸长</label>
+                    <input type="range" id="faceLength" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="faceLengthValue">1.0</span>
+                </div>
+                <div class="slider-group">
+                    <label>下巴宽度</label>
+                    <input type="range" id="chinWidth" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="chinWidthValue">1.0</span>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>眼睛</h3>
+                <div class="slider-group">
+                    <label>眼睛大小</label>
+                    <input type="range" id="eyeSize" min="0.5" max="2" step="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="eyeSizeValue">1.0</span>
+                </div>
+                <div class="slider-group">
+                    <label>眼睛间距</label>
+                    <input type="range" id="eyeDistance" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="eyeDistanceValue">1.0</span>
+                </div>
+                <div class="slider-group">
+                    <label>眼睛高度</label>
+                    <input type="range" id="eyeHeight" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="eyeHeightValue">1.0</span>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>鼻子</h3>
+                <div class="slider-group">
+                    <label>鼻子宽度</label>
+                    <input type="range" id="noseWidth" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="noseWidthValue">1.0</span>
+                </div>
+                <div class="slider-group">
+                    <label>鼻子高度</label>
+                    <input type="range" id="noseHeight" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="noseHeightValue">1.0</span>
+                </div>
+                <div class="slider-group">
+                    <label>鼻梁高度</label>
+                    <input type="range" id="noseBridge" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="noseBridgeValue">1.0</span>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>嘴巴</h3>
+                <div class="slider-group">
+                    <label>嘴巴宽度</label>
+                    <input type="range" id="mouthWidth" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="mouthWidthValue">1.0</span>
+                </div>
+                <div class="slider-group">
+                    <label>嘴巴高度</label>
+                    <input type="range" id="mouthHeight" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="mouthHeightValue">1.0</span>
+                </div>
+                <div class="slider-group">
+                    <label>嘴唇厚度</label>
+                    <input type="range" id="lipThickness" min="0.5" max="2" step="0.1" value="1" class="slider">
+                    <span id="lipThicknessValue">1.0</span>
+                </div>
+            </div>
+            
+            <div class="control-section">
+                <h3>肤色</h3>
+                <div class="slider-group">
+                    <label>肤色</label>
+                    <input type="range" id="skinColor" min="0" max="1" step="0.01" value="0.5" class="slider">
+                    <span id="skinColorValue">0.5</span>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button id="saveBtn" class="btn btn-success">保存参数</button>
+                <button id="loadBtn" class="btn btn-info">加载参数</button>
+                <button id="resetBtn" class="btn btn-warning">重置参数</button>
+            </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    
+    <script src="js/modules/FaceDetector.js"></script>
+    <script src="js/modules/FaceRenderer.js"></script>
+    <script src="js/modules/InteractionControls.js"></script>
+    <script src="js/modules/ParameterManager.js"></script>
+    <script src="js/modules/DataStorage.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
