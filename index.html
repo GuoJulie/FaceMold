@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FaceMold - 3D人脸可视化交互组件</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 视频捕获区域 -->
+        <div class="video-container">
+            <video id="video" playsinline></video>
+            <canvas id="video-canvas"></canvas>
+        </div>
+        
+        <!-- 3D渲染区域 -->
+        <div class="render-container">
+            <canvas id="three-canvas"></canvas>
+            <div class="controls-overlay">
+                <button id="capture-btn" class="control-btn">捕获人脸</button>
+                <button id="reset-btn" class="control-btn">重置</button>
+                <button id="save-btn" class="control-btn">保存参数</button>
+            </div>
+        </div>
+        
+        <!-- 参数控制面板 -->
+        <div class="control-panel">
+            <div class="panel-section">
+                <h3>脸型调整</h3>
+                <div class="control-group">
+                    <label>脸宽: <span id="face-width-value">50</span></label>
+                    <input type="range" id="face-width" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label>脸长: <span id="face-length-value">50</span></label>
+                    <input type="range" id="face-length" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label>下巴形状: <span id="chin-shape-value">50</span></label>
+                    <input type="range" id="chin-shape" min="0" max="100" value="50">
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>眼睛调整</h3>
+                <div class="control-group">
+                    <label>眼睛大小: <span id="eye-size-value">50</span></label>
+                    <input type="range" id="eye-size" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label>眼睛间距: <span id="eye-spacing-value">50</span></label>
+                    <input type="range" id="eye-spacing" min="0" max="100" value="50">
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>鼻子调整</h3>
+                <div class="control-group">
+                    <label>鼻子大小: <span id="nose-size-value">50</span></label>
+                    <input type="range" id="nose-size" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label>鼻梁高度: <span id="nose-height-value">50</span></label>
+                    <input type="range" id="nose-height" min="0" max="100" value="50">
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>嘴巴调整</h3>
+                <div class="control-group">
+                    <label>嘴巴大小: <span id="mouth-size-value">50</span></label>
+                    <input type="range" id="mouth-size" min="0" max="100" value="50">
+                </div>
+                <div class="control-group">
+                    <label>嘴唇厚度: <span id="lip-thickness-value">50</span></label>
+                    <input type="range" id="lip-thickness" min="0" max="100" value="50">
+                </div>
+            </div>
+            
+            <div class="panel-section">
+                <h3>肤色调整</h3>
+                <div class="control-group">
+                    <label>肤色: <span id="skin-color-value">自然</span></label>
+                    <div class="color-picker">
+                        <div class="color-option" data-color="#FFE0BD" style="background: #FFE0BD;"></div>
+                        <div class="color-option" data-color="#FFC8A0" style="background: #FFC8A0;"></div>
+                        <div class="color-option" data-color="#E6B89C" style="background: #E6B89C;"></div>
+                        <div class="color-option" data-color="#D4A574" style="background: #D4A574;"></div>
+                        <div class="color-option" data-color="#B8860B" style="background: #B8860B;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1668520077/face_mesh.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1675469240/camera_utils.js"></script>
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
