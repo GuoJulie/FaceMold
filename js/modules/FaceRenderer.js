@@ -14,6 +14,7 @@ class FaceRenderer {
         this.parameters = this.getDefaultParameters();
         this.animationId = null;
         this.faceGeometry = null;
+        this.faceLandmarkIndices = [];
     }
 
     getDefaultParameters() {
@@ -56,7 +57,7 @@ class FaceRenderer {
         this.controls.maxDistance = 10;
 
         this.addLights();
-        this.createBaseFaceMesh();
+        this.createRealisticFaceModel();
 
         window.addEventListener('resize', this.onWindowResize.bind(this));
         this.animate();
@@ -79,29 +80,88 @@ class FaceRenderer {
         this.scene.add(rimLight);
     }
 
-    createBaseFaceMesh() {
-        const geometry = new THREE.SphereGeometry(1.5, 64, 64);
+    createRealisticFaceModel() {
+        const geometry = new THREE.BufferGeometry();
         
-        const positions = geometry.attributes.position;
-        for (let i = 0; i < positions.count; i++) {
-            const x = positions.getX(i);
-            const y = positions.getY(i);
-            const z = positions.getZ(i);
-            
-            const faceScaleY = 1.2;
-            const faceScaleX = 0.9;
-            const faceScaleZ = 0.85;
-            
-            positions.setXYZ(i, x * faceScaleX, y * faceScaleY, z * faceScaleZ);
+        const vertices = [];
+        const indices = [];
+        
+        const gridSize = 40;
+        const halfGrid = gridSize / 2;
+        
+        for (let i = 0; i <= gridSize; i++) {
+            for (let j = 0; j <= gridSize; j++) {
+                const x = (j - halfGrid) / halfGrid * 1.2;
+                const y = (halfGrid - i) / halfGrid * 1.5;
+                
+                let z = Math.sqrt(Math.max(0, 1 - x * x - y * y * 0.7)) * 0.9;
+                
+                const noseX = x;
+                const noseY = y + 0.1;
+                const noseDist = Math.sqrt(noseX * noseX + noseY * noseY);
+                if (noseDist < 0.4) {
+                    z += (0.4 - noseDist) * 0.4;
+                }
+                
+                const foreheadY = y - 0.3;
+                if (foreheadY > 0) {
+                    z += foreheadY * 0.15;
+                }
+                
+                const chinY = y + 0.6;
+                if (chinY > 0) {
+                    const chinDist = Math.sqrt(x * x + chinY * chinY);
+                    if (chinDist < 0.5) {
+                        z -= chinY * 0.1;
+                    }
+                }
+                
+                const leftEyeX = x + 0.35;
+                const leftEyeY = y - 0.15;
+                const leftEyeDist = Math.sqrt(leftEyeX * leftEyeX + leftEyeY * leftEyeY);
+                if (leftEyeDist < 0.25) {
+                    z -= (0.25 - leftEyeDist) * 0.15;
+                }
+                
+                const rightEyeX = x - 0.35;
+                const rightEyeDist = Math.sqrt(rightEyeX * rightEyeX + leftEyeY * leftEyeY);
+                if (rightEyeDist < 0.25) {
+                    z -= (0.25 - rightEyeDist) * 0.15;
+                }
+                
+                const mouthY = y + 0.45;
+                const mouthX = x;
+                const mouthDist = Math.sqrt(mouthX * mouthX + (mouthY * 1.5) * (mouthY * 1.5));
+                if (mouthDist < 0.35) {
+                    z -= (0.35 - mouthDist) * 0.08;
+                }
+                
+                vertices.push(x, y, z);
+            }
         }
         
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                const a = i * (gridSize + 1) + j;
+                const b = a + 1;
+                const c = a + gridSize + 1;
+                const d = c + 1;
+                
+                indices.push(a, b, c);
+                indices.push(b, d, c);
+            }
+        }
+        
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geometry.setIndex(indices);
         geometry.computeVertexNormals();
         
         const material = new THREE.MeshPhongMaterial({
             color: this.getSkinColor(0.5),
             shininess: 50,
             specular: 0x333333,
-            flatShading: false
+            flatShading: false,
+            side: THREE.DoubleSide
         });
 
         this.faceMesh = new THREE.Mesh(geometry, material);
@@ -183,9 +243,9 @@ class FaceRenderer {
         
         for (const lm of landmarks) {
             points.push({
-                x: (lm.x - centerX) * scale * 1.5,
+                x: (lm.x - centerX) * scale * 1.2,
                 y: -(lm.y - centerY) * scale * 1.5,
-                z: -(lm.z - centerZ) * scale * 1.2
+                z: -(lm.z - centerZ) * scale * 1.0
             });
         }
         
@@ -193,7 +253,7 @@ class FaceRenderer {
     }
 
     updateFaceMeshFromLandmarks() {
-        if (!this.faceMesh || !this.landmarkPoints) return;
+        if (!this.faceMesh) return;
 
         const positions = this.faceMesh.geometry.attributes.position;
         
@@ -225,8 +285,8 @@ class FaceRenderer {
         if (!this.landmarkPoints) return vertex;
         
         const result = { ...vertex };
-        const influenceRadius = 0.5;
-        const blendFactor = 0.6;
+        const influenceRadius = 0.8;
+        const blendFactor = 0.5;
         
         let totalWeight = 0;
         let weightedX = 0, weightedY = 0, weightedZ = 0;
@@ -237,7 +297,8 @@ class FaceRenderer {
             1, 2, 98, 327,
             13, 14, 78, 308,
             168, 197, 4, 5, 200, 201, 202,
-            21, 54, 63, 103, 105, 107
+            21, 54, 63, 103, 105, 107,
+            109, 151, 337, 338
         ];
         
         for (const idx of importantLandmarks) {
@@ -294,8 +355,8 @@ class FaceRenderer {
     applyEyeDeformation(vertex) {
         const { eyeSize, eyeDistance, eyeHeight } = this.parameters;
         
-        let leftEyeCenter = { x: -0.4, y: 0.3, z: 1.2 };
-        let rightEyeCenter = { x: 0.4, y: 0.3, z: 1.2 };
+        let leftEyeCenter = { x: -0.35, y: 0.15, z: 0.9 };
+        let rightEyeCenter = { x: 0.35, y: 0.15, z: 0.9 };
         
         if (this.landmarkPoints) {
             if (this.landmarkPoints[33] && this.landmarkPoints[133]) {
@@ -317,22 +378,22 @@ class FaceRenderer {
         const distToLeftEye = this.distance(vertex, leftEyeCenter);
         const distToRightEye = this.distance(vertex, rightEyeCenter);
         
-        const eyeInfluenceRadius = 0.5;
+        const eyeInfluenceRadius = 0.4;
         
         if (distToLeftEye < eyeInfluenceRadius) {
             const influence = 1 - distToLeftEye / eyeInfluenceRadius;
             vertex.x = leftEyeCenter.x + (vertex.x - leftEyeCenter.x) * (1 + influence * (eyeSize - 1));
             vertex.y = leftEyeCenter.y + (vertex.y - leftEyeCenter.y) * (1 + influence * (eyeSize - 1));
-            vertex.y += influence * (eyeHeight - 1) * 0.2;
-            vertex.x -= influence * (eyeDistance - 1) * 0.1;
+            vertex.y += influence * (eyeHeight - 1) * 0.15;
+            vertex.x -= influence * (eyeDistance - 1) * 0.08;
         }
         
         if (distToRightEye < eyeInfluenceRadius) {
             const influence = 1 - distToRightEye / eyeInfluenceRadius;
             vertex.x = rightEyeCenter.x + (vertex.x - rightEyeCenter.x) * (1 + influence * (eyeSize - 1));
             vertex.y = rightEyeCenter.y + (vertex.y - rightEyeCenter.y) * (1 + influence * (eyeSize - 1));
-            vertex.y += influence * (eyeHeight - 1) * 0.2;
-            vertex.x += influence * (eyeDistance - 1) * 0.1;
+            vertex.y += influence * (eyeHeight - 1) * 0.15;
+            vertex.x += influence * (eyeDistance - 1) * 0.08;
         }
         
         return vertex;
@@ -341,22 +402,22 @@ class FaceRenderer {
     applyNoseDeformation(vertex) {
         const { noseWidth, noseHeight, noseBridge } = this.parameters;
         
-        let noseTip = { x: 0, y: -0.1, z: 1.4 };
-        let noseBridgeLine = { x: 0, y: 0.3, z: 1.2 };
+        let noseTip = { x: 0, y: -0.1, z: 1.0 };
+        let noseBridgePoint = { x: 0, y: 0.3, z: 0.9 };
         
         if (this.landmarkPoints) {
             if (this.landmarkPoints[1]) {
                 noseTip = { ...this.landmarkPoints[1] };
             }
             if (this.landmarkPoints[168]) {
-                noseBridgeLine = { ...this.landmarkPoints[168] };
+                noseBridgePoint = { ...this.landmarkPoints[168] };
             }
         }
         
         const distToNoseTip = this.distance(vertex, noseTip);
-        const distToNoseBridge = this.distance(vertex, noseBridgeLine);
+        const distToNoseBridge = this.distance(vertex, noseBridgePoint);
         
-        const noseInfluenceRadius = 0.4;
+        const noseInfluenceRadius = 0.35;
         
         if (distToNoseTip < noseInfluenceRadius) {
             const influence = 1 - distToNoseTip / noseInfluenceRadius;
@@ -366,7 +427,7 @@ class FaceRenderer {
         
         if (distToNoseBridge < noseInfluenceRadius && vertex.y > noseTip.y) {
             const influence = 1 - distToNoseBridge / noseInfluenceRadius;
-            vertex.z = noseBridgeLine.z + (vertex.z - noseBridgeLine.z) * (1 + influence * (noseBridge - 1));
+            vertex.z = noseBridgePoint.z + (vertex.z - noseBridgePoint.z) * (1 + influence * (noseBridge - 1));
         }
         
         return vertex;
@@ -375,14 +436,14 @@ class FaceRenderer {
     applyMouthDeformation(vertex) {
         const { mouthWidth, mouthHeight, lipThickness } = this.parameters;
         
-        let mouthCenter = { x: 0, y: -0.5, z: 1.2 };
+        let mouthCenter = { x: 0, y: -0.45, z: 0.9 };
         
         if (this.landmarkPoints && this.landmarkPoints[13]) {
             mouthCenter = { ...this.landmarkPoints[13] };
         }
         
         const distToMouth = this.distance(vertex, mouthCenter);
-        const mouthInfluenceRadius = 0.5;
+        const mouthInfluenceRadius = 0.4;
         
         if (distToMouth < mouthInfluenceRadius) {
             const influence = 1 - distToMouth / mouthInfluenceRadius;
