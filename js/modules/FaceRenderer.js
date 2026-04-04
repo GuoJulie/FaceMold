@@ -88,19 +88,26 @@ class FaceRenderer {
             const y = positions.getY(i);
             const z = positions.getZ(i);
             
-            const faceScaleY = 1.2;
-            const faceScaleX = 0.9;
-            const faceScaleZ = 0.85;
-            
-            positions.setXYZ(i, x * faceScaleX, y * faceScaleY, z * faceScaleZ);
+            if (z > 0) {
+                let faceScaleY = 1.1;
+                let faceScaleX = 0.85;
+                let faceScaleZ = 0.9;
+                
+                if (y < 0) {
+                    faceScaleY = 1.05;
+                    faceScaleX = 0.8;
+                }
+                
+                positions.setXYZ(i, x * faceScaleX, y * faceScaleY, z * faceScaleZ);
+            }
         }
         
         geometry.computeVertexNormals();
         
         const material = new THREE.MeshPhongMaterial({
             color: this.getSkinColor(0.5),
-            shininess: 50,
-            specular: 0x333333,
+            shininess: 30,
+            specular: 0x222222,
             flatShading: false
         });
 
@@ -160,32 +167,35 @@ class FaceRenderer {
         
         const points = [];
         
-        let centerX = 0, centerY = 0, centerZ = 0;
-        for (const lm of landmarks) {
-            centerX += lm.x;
-            centerY += lm.y;
-            centerZ += lm.z;
-        }
-        centerX /= landmarks.length;
-        centerY /= landmarks.length;
-        centerZ /= landmarks.length;
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+        let minZ = Infinity, maxZ = -Infinity;
         
-        let maxDist = 0;
         for (const lm of landmarks) {
-            const dx = lm.x - centerX;
-            const dy = lm.y - centerY;
-            const dz = lm.z - centerZ;
-            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (dist > maxDist) maxDist = dist;
+            minX = Math.min(minX, lm.x);
+            maxX = Math.max(maxX, lm.x);
+            minY = Math.min(minY, lm.y);
+            maxY = Math.max(maxY, lm.y);
+            minZ = Math.min(minZ, lm.z);
+            maxZ = Math.max(maxZ, lm.z);
         }
         
-        const scale = 1.5 / maxDist;
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+        const centerZ = (minZ + maxZ) / 2;
+        
+        const width = maxX - minX;
+        const height = maxY - minY;
+        const depth = maxZ - minZ;
+        const maxDimension = Math.max(width, height, depth);
+        
+        const scale = 1.5 / maxDimension;
         
         for (const lm of landmarks) {
             points.push({
-                x: (lm.x - centerX) * scale * 1.5,
-                y: -(lm.y - centerY) * scale * 1.5,
-                z: -(lm.z - centerZ) * scale * 1.2
+                x: (lm.x - centerX) * scale * 0.8,
+                y: -(lm.y - centerY) * scale * 1.0,
+                z: Math.max(0.5, Math.min(1.5, 1.0 - (lm.z - centerZ) * scale * 0.7))
             });
         }
         
@@ -200,12 +210,14 @@ class FaceRenderer {
         for (let i = 0; i < positions.count; i++) {
             let vertex = { ...this.originalVertices[i] };
             
-            vertex = this.applyLandmarkDeformation(vertex);
-            
-            vertex = this.applyFaceShapeDeformation(vertex);
-            vertex = this.applyEyeDeformation(vertex);
-            vertex = this.applyNoseDeformation(vertex);
-            vertex = this.applyMouthDeformation(vertex);
+            if (vertex.z > 0) {
+                vertex = this.applyLandmarkDeformation(vertex);
+                
+                vertex = this.applyFaceShapeDeformation(vertex);
+                vertex = this.applyEyeDeformation(vertex);
+                vertex = this.applyNoseDeformation(vertex);
+                vertex = this.applyMouthDeformation(vertex);
+            }
             
             positions.setXYZ(i, vertex.x, vertex.y, vertex.z);
         }
@@ -225,8 +237,8 @@ class FaceRenderer {
         if (!this.landmarkPoints) return vertex;
         
         const result = { ...vertex };
-        const influenceRadius = 0.5;
-        const blendFactor = 0.6;
+        const influenceRadius = 0.35;
+        const blendFactor = 0.7;
         
         let totalWeight = 0;
         let weightedX = 0, weightedY = 0, weightedZ = 0;
@@ -247,7 +259,7 @@ class FaceRenderer {
             const dist = this.distance(vertex, lm);
             
             if (dist < influenceRadius) {
-                const weight = Math.pow(1 - dist / influenceRadius, 2);
+                const weight = Math.pow(1 - dist / influenceRadius, 3);
                 totalWeight += weight;
                 weightedX += lm.x * weight;
                 weightedY += lm.y * weight;
