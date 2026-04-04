@@ -1,5 +1,4 @@
 const express = require('express');
-const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 
@@ -9,7 +8,6 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const PARAMETERS_FILE = path.join(DATA_DIR, 'parameters.json');
 
-app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
